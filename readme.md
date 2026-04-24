@@ -2,7 +2,7 @@
 
 ## compile with
 
-```sh
+```
 make
 ```
 
