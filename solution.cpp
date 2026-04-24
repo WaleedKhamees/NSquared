@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <math.h>
 
 #define MAX_SPEED 200
@@ -6,10 +7,15 @@
 // When the hybrid motor switches from electric to gas engine
 #define HYBRID_SWITCH 50
 
+void panic(std::string msg) {
+    std::cout << "PANIC: " << msg << "\n";
+    exit(-1);
+}
+
 enum class EngineType {
-    Gas, 
-    Electric, 
-    Hybrid 
+    Gas,
+    Electric,
+    Hybrid
 };
 
 class Engine {
@@ -25,9 +31,9 @@ public:
 };
 
 class GasEngine : public Engine {
-public: 
+public:
     GasEngine() {
-        speed = 0; 
+        speed = 0;
     }
     void increase() {
         speed += 1;
@@ -41,9 +47,9 @@ public:
 };
 
 class ElectricEngine : public Engine {
-public: 
+public:
     ElectricEngine() {
-        speed = 0; 
+        speed = 0;
     }
     void increase() {
         speed += 1;
@@ -57,9 +63,9 @@ public:
 };
 
 class HybirdEngine : public Engine {
-    GasEngine* gasEngine; 
-    ElectricEngine* elecEngine; 
-public: 
+    GasEngine* gasEngine;
+    ElectricEngine* elecEngine;
+public:
     HybirdEngine() {
         gasEngine = new GasEngine();
         elecEngine = new ElectricEngine();
@@ -91,7 +97,7 @@ public:
         }
 
     }
-    
+
     void decrease() {
         int speed = getSpeed();
         bool isGas = elecEngine->getSpeed() == 0;
@@ -134,10 +140,13 @@ public:
 };
 
 class Car {
-private: 
-    Engine* engine; 
-public: 
+private:
+    Engine* engine;
+public:
     Car(Engine* e) {
+        if (!e){
+            panic("null engine on car constructor");
+        }
         engine = e;
     }
     void start() {
@@ -168,35 +177,69 @@ public:
         }
         std::cout << "LOG: Car's speed: " << engine->getSpeed() << "\n";
     }
+    void changeEngine(Engine* e) {
+        if (!e){
+            panic("null engine on changeEngine");
+        }
+        delete this->engine;
+        this->engine = e;
+    }
+
     ~Car() {
         std::cout << "LOG: Car destructor called\n";
         delete this->engine;
     }
 };
 
-Car createCar(EngineType type) {
-    switch (type) {
-        case EngineType::Gas: {
-            auto gasEngine = new GasEngine();
-            return Car(gasEngine);
+class CarFactory {
+public:
+    static void changeEngine(Car& car, EngineType type) {
+        switch (type) {
+            case EngineType::Gas: {
+                auto gasEngine = new GasEngine();
+                car.changeEngine(gasEngine);
+                return;
+            }
+            case EngineType::Electric: {
+                auto elecEngine = new ElectricEngine();
+                car.changeEngine(elecEngine);
+                return;
+            }
+            case EngineType::Hybrid: {
+                auto hybird = new HybirdEngine();
+                car.changeEngine(hybird);
+                return;
+            }
         }
-        case EngineType::Electric: {
-            auto elecEngine = new ElectricEngine();
-            return Car(elecEngine);
-        }
-        case EngineType::Hybrid: {
-            auto hybird = new HybirdEngine();
-            return Car(hybird);
-        }
+        panic("not a valid engine type");
     }
-    std::cout << "ERROR: not a valid engine type\n"; 
-    exit(-1);
-    return NULL;
-}
+
+    static Car createCar(EngineType type) {
+        switch (type) {
+            case EngineType::Gas: {
+                auto gasEngine = new GasEngine();
+                return Car(gasEngine);
+            }
+            case EngineType::Electric: {
+                auto elecEngine = new ElectricEngine();
+                return Car(elecEngine);
+            }
+            case EngineType::Hybrid: {
+                auto hybird = new HybirdEngine();
+                return Car(hybird);
+            }
+        }
+
+        panic("not a valid engine type");
+        return NULL;
+    }
+};
+
+
 
 int main() {
-    auto car = createCar(EngineType::Hybrid);
-    
+    auto car = CarFactory::createCar(EngineType::Hybrid);
+
     car.start();
     for (int i = 0; i < 11; i++) {
         car.accerlate();
@@ -207,5 +250,20 @@ int main() {
     }
 
     car.stop();
+
+    CarFactory::changeEngine(car, EngineType::Gas);
+
+    car.start();
+    for (int i = 0; i < 11; i++) {
+        car.accerlate();
+    }
+
+    for (int i = 0; i < 3; i++) {
+        car.brake();
+    }
+
+    car.stop();
+
+
     return 0;
 }
